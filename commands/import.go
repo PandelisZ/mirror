@@ -18,8 +18,8 @@ import (
 type command struct {
 }
 
-// Sync is the exported struct to be used in main
-var Sync = command{}
+// Import is the exported struct to be used in main
+var Import = command{}
 
 func (a command) Action(c *cli.Context) error {
 
@@ -33,15 +33,14 @@ func (a command) Action(c *cli.Context) error {
 	}
 
 	SelectedGhOrg := c.String("gh-org")
+	DesinationGlGroup := c.String("gl-group")
 
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: GitHubToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
-
 	client := github.NewClient(tc)
-
 	opt := &github.RepositoryListByOrgOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
@@ -60,7 +59,6 @@ func (a command) Action(c *cli.Context) error {
 		}
 	}
 	go spinner()
-
 	// get all pages of results
 	var allRepos []*github.Repository
 	for {
@@ -76,25 +74,29 @@ func (a command) Action(c *cli.Context) error {
 	}
 	quit <- true
 
-	//TODO: Save results to file for user to specify which to sync
 	var repoConfig []*config.MirrorRepoConfig
 	for _, repo := range allRepos {
 		repoConfig = append(repoConfig, &config.MirrorRepoConfig{
 			ID:           repo.ID,
+			Name:         repo.Name,
+			Description:  repo.Description,
 			FullName:     repo.FullName,
+			URL:          repo.HTMLURL,
 			Tracked:      true,
 			ShouldMirror: true,
 			Mirrored:     false,
+			Private:      true,
 		})
 	}
 
 	mirrorConfig := config.MirrorConfig{
-		GitHubOrg: SelectedGhOrg,
-		GitLabOrg: "",
-		Repos:     repoConfig,
+		GitHubOrg:   SelectedGhOrg,
+		GitLabGroup: DesinationGlGroup,
+		Repos:       repoConfig,
 	}
 	configFile, _ := json.MarshalIndent(mirrorConfig, "", " ")
-	_ = ioutil.WriteFile("config.json", configFile, 0644)
+	_ = ioutil.WriteFile(c.String("out"), configFile, 0644)
 
+	fmt.Printf("\nSuccessfully imported repositores for github.com/%s\n", SelectedGhOrg)
 	return nil
 }

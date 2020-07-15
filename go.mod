@@ -9,5 +9,6 @@ require (
 	github.com/tj/go-spin v1.1.0
 	github.com/urfave/cli v1.22.4
 	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
+	github.com/xanzy/go-gitlab v0.33.0
+	golang.org/x/oauth2 v0.0.0-20181106182150-f42d05182288
 )
