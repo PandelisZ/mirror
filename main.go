@@ -41,10 +41,11 @@ var flags Myflags = Myflags{
 		Usage: "GitLab token to use if not defined in the GL_TOKEN environment variable",
 	},
 	config: &cli.StringFlag{
-		Name:    "config",
-		Aliases: []string{"f", "c", "file"},
-		Value:   "",
-		Usage:   "Path to configuration file",
+		Name:      "config",
+		Aliases:   []string{"f", "c", "file"},
+		Value:     "repositories.json",
+		TakesFile: true,
+		Usage:     "Path to configuration file",
 	},
 	out: &cli.StringFlag{
 		Name:    "out",
@@ -75,6 +76,7 @@ func main() {
 				Usage:  "Create a config file with the repos you'd like to import",
 				Action: commands.Create.Action,
 				Flags: []cli.Flag{
+					flags.ghToken,
 					flags.glToken,
 					flags.config,
 				},

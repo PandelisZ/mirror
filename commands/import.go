@@ -81,7 +81,7 @@ func (a command) Action(c *cli.Context) error {
 			Name:         repo.Name,
 			Description:  repo.Description,
 			FullName:     repo.FullName,
-			URL:          repo.HTMLURL,
+			URL:          repo.CloneURL,
 			Tracked:      true,
 			ShouldMirror: true,
 			Mirrored:     false,
@@ -94,7 +94,7 @@ func (a command) Action(c *cli.Context) error {
 		GitLabGroup: DesinationGlGroup,
 		Repos:       repoConfig,
 	}
-	configFile, _ := json.MarshalIndent(mirrorConfig, "", " ")
+	configFile, _ := json.MarshalIndent(mirrorConfig, "", "    ")
 	_ = ioutil.WriteFile(c.String("out"), configFile, 0644)
 
 	fmt.Printf("\nSuccessfully imported repositores for github.com/%s\n", SelectedGhOrg)

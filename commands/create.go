@@ -1,15 +1,20 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
+	"github.com/google/go-github/v32/github"
 	"github.com/pandelisz/mirror/config"
+	"github.com/tj/go-spin"
 	"github.com/urfave/cli/v2"
 	"github.com/xanzy/go-gitlab"
+	"golang.org/x/oauth2"
 )
 
 type create struct {
@@ -27,6 +32,26 @@ func (a create) Action(c *cli.Context) error {
 			return cli.Exit("GitLab token has not been set:\nGL_TOKEN environment variable not found", 1)
 		}
 		GitLabToken = c.String("gl-token")
+	}
+
+	GitHubToken := os.Getenv("GH_TOKEN")
+
+	if GitHubToken == "" {
+		if c.String("gh-token") == "" {
+			return cli.Exit("GitHub token has not been set:\nGH_TOKEN environment variable not found", 1)
+		}
+		GitHubToken = c.String("gh-token")
+	}
+
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: GitHubToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	authenticatedGhUser, _, err := client.Users.Get(ctx, "")
+	if err != nil {
+		return cli.Exit("Could not retrieve user from given GitHub token", 1)
 	}
 
 	var config config.MirrorConfig
@@ -60,22 +85,44 @@ func (a create) Action(c *cli.Context) error {
 		return cli.Exit(fmt.Sprintf("Could not find a group you belong to that matches %s", config.GitLabGroup), 1)
 	}
 
-	for _, repo := range config.Repos {
+	s := spin.New()
+	quit := make(chan bool)
+	spinner := func() {
+		for i := 0; i < 100000; i++ {
+			select {
+			case <-quit:
+				return
+			default:
+				fmt.Printf("\r  \033[36mCreating repositories\033[m %s ", s.Next())
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}
+	go spinner()
+	for i, repo := range config.Repos {
 		p := &gitlab.CreateProjectOptions{
 			Name:        repo.Name,
 			Description: repo.Description,
 			Visibility:  gitlab.Visibility(gitlab.PrivateVisibility),
-			ImportURL:   repo.URL,
+			ImportURL:   gitlab.String(fmt.Sprintf("https://%s:%s@github.com/%s.git", *authenticatedGhUser.Login, GitHubToken, *repo.FullName)),
 			NamespaceID: &nameSpaceID,
 			Mirror:      gitlab.Bool(true),
 		}
 		_, _, err := gLab.Projects.CreateProject(p)
 		if err != nil {
 			log.Printf("Failed to create project for %s :\n%v", *repo.FullName, err)
+		} else {
+			log.Printf("Created repository for %s", *p.Name)
+			config.Repos[i].Mirrored = true
 		}
 	}
+	quit <- true
 
-	fmt.Printf("Successfully created repositories in GitLab!")
+	configFile.Close()
+	configFileOut, _ := json.MarshalIndent(config, "", "    ")
+	_ = ioutil.WriteFile(c.String("out"), configFileOut, 0644)
+
+	fmt.Println("\nSuccessfully created repositories in GitLab!")
 	return nil
 
 }
