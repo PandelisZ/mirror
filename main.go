@@ -25,6 +25,12 @@ func main() {
 				Usage:    "GitHub org to mirror",
 				Required: true,
 			},
+			&cli.StringFlag{
+				Name:    "config",
+				Aliases: []string{"f", "c", "file"},
+				Value:   "",
+				Usage:   "Path to configuration file",
+			},
 		},
 	}
 

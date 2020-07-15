@@ -2,12 +2,14 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
 	"github.com/google/go-github/v32/github"
-	"github.com/manifoldco/promptui"
+	"github.com/pandelisz/mirror/config"
 	"github.com/tj/go-spin"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/oauth2"
@@ -74,25 +76,25 @@ func (a command) Action(c *cli.Context) error {
 	}
 	quit <- true
 
-	prompt := promptui.Select{
-		Label: "Select repositories to sync",
-		Items: allRepos,
-		Size:  30, //TODO: Make this dynamic based on terminal size
-		Templates: &promptui.SelectTemplates{
-			Label:    "{{.FullName}}",
-			Selected: "{{.FullName}}    ✅",
-			Active:   "▶️    {{.FullName}}",
-			Inactive: "{{.FullName}}",
-		},
+	//TODO: Save results to file for user to specify which to sync
+	var repoConfig []*config.MirrorRepoConfig
+	for _, repo := range allRepos {
+		repoConfig = append(repoConfig, &config.MirrorRepoConfig{
+			ID:           repo.ID,
+			FullName:     repo.FullName,
+			Tracked:      true,
+			ShouldMirror: true,
+			Mirrored:     false,
+		})
 	}
 
-	_, result, err := prompt.Run()
-
-	if err != nil {
-		return cli.Exit(fmt.Sprintf("Prompt failed %v\n", err), 1)
+	mirrorConfig := config.MirrorConfig{
+		GitHubOrg: SelectedGhOrg,
+		GitLabOrg: "",
+		Repos:     repoConfig,
 	}
-
-	fmt.Printf("You choose %q\n", result)
+	configFile, _ := json.MarshalIndent(mirrorConfig, "", " ")
+	_ = ioutil.WriteFile("config.json", configFile, 0644)
 
 	return nil
 }

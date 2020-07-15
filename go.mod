@@ -3,6 +3,7 @@ module github.com/pandelisz/mirror
 go 1.14
 
 require (
+	github.com/AlecAivazis/survey/v2 v2.0.8
 	github.com/google/go-github/v32 v32.0.0
 	github.com/manifoldco/promptui v0.7.0
 	github.com/tj/go-spin v1.1.0
