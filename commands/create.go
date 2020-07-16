@@ -15,6 +15,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/sourcerepo/v1"
 )
 
 type create struct {
@@ -22,6 +23,54 @@ type create struct {
 
 // Create is the exported struct to be used in main
 var Create = create{}
+
+func (a create) Debug(c *cli.Context) error {
+	ctx := context.Background()
+	sourcerepoService, err := sourcerepo.NewService(ctx)
+	if err != nil {
+		return err
+	}
+
+	res, err := sourcerepoService.Projects.Repos.List("projects/plumbus").Do()
+	if err != nil {
+		return err
+	}
+	for _, r := range res.Repos {
+		fmt.Print(r)
+	}
+
+	return nil
+}
+
+// Google Cloud Source Repository
+func gcsRepository(c *cli.Context, ghOrg string, config config.MirrorConfig) error {
+	ctx := context.Background()
+	sourcerepoService, err := sourcerepo.NewService(ctx)
+	if err != nil {
+		return err
+	}
+
+	projectName := "exampleproject"
+
+	for i, repo := range config.Repos {
+
+		p := &sourcerepo.Repo{
+			Name: fmt.Sprintf("projects/%s/repos/github_%s_%s", projectName, ghOrg, *repo.Name),
+			MirrorConfig: &sourcerepo.MirrorConfig{
+				Url: *repo.URL,
+			},
+		}
+		res, err := sourcerepoService.Projects.Repos.Create(fmt.Sprintf("projects/%s", projectName), p).Do()
+		if err != nil {
+			log.Printf("Failed to create project for %s :\n%v", *repo.FullName, err)
+		} else {
+			log.Printf("Created repository for %s", res.Name)
+			config.Repos[i].Mirrored = true
+		}
+	}
+
+	return nil
+}
 
 func (a create) Action(c *cli.Context) error {
 
