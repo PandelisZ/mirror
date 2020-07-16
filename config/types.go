@@ -10,6 +10,8 @@ type MirrorRepoConfig struct {
 	Mirrored     bool
 	Description  *string
 	URL          *string
+	CloneURL     *string
+	SSHURL       *string
 	Replica      *ReplicaRepo `json:"replica,omitempty"`
 }
 

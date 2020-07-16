@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/go-github/v32/github"
@@ -40,10 +41,10 @@ func (a sync) Action(c *cli.Context) error {
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	// authenticatedGhUser, _, err := client.Users.Get(ctx, "")
-	// if err != nil {
-	// 	return cli.Exit("Could not retrieve user from given GitHub token", 1)
-	// }
+	authenticatedGhUser, _, err := client.Users.Get(ctx, "")
+	if err != nil {
+		return cli.Exit("Could not retrieve user from given GitHub token", 1)
+	}
 
 	var conf config.MirrorConfig
 	configFile, err := os.Open(c.String("config"))
@@ -63,7 +64,7 @@ func (a sync) Action(c *cli.Context) error {
 			case <-quit:
 				return
 			default:
-				fmt.Printf("\r  \033[36mCreating repositories\033[m %s ", s.Next())
+				fmt.Printf("\r  \033[36mCloning repositories\033[m %s ", s.Next())
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
@@ -72,7 +73,7 @@ func (a sync) Action(c *cli.Context) error {
 
 	for _, repo := range conf.Repos {
 
-		if !repo.ShouldMirror || repo.Mirrored {
+		if !repo.ShouldMirror {
 			continue
 		}
 
@@ -85,11 +86,15 @@ func (a sync) Action(c *cli.Context) error {
 
 		// Don't bother updating if no changes since last sync
 		if repo.Replica.LastSync > lastUpdatedUnix {
-			log.Println("Skipped")
+			log.Println(fmt.Sprintf("Skipped %s", *repo.FullName))
 			continue
 		}
-
-		clonedRepository, err := git.Clone(*repo.Replica.SSHURL, "./clonedir/repo", &git.CloneOptions{
+		abs, err := filepath.Abs(fmt.Sprintf("./clone_dir/%s", *repo.Name))
+		if err != nil {
+			return err
+		}
+		log.Println(fmt.Sprintf("Cloning %s", *repo.FullName))
+		clonedRepository, err := git.Clone(fmt.Sprintf("https://%s:%s@github.com/%s.git", *authenticatedGhUser.Login, GitHubToken, *repo.FullName), abs, &git.CloneOptions{
 			Bare: true,
 		})
 
@@ -97,7 +102,7 @@ func (a sync) Action(c *cli.Context) error {
 			return err
 		}
 
-		fmt.Print(clonedRepository.Remotes)
+		fmt.Print(clonedRepository)
 	}
 	quit <- true
 

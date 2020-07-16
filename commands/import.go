@@ -82,6 +82,8 @@ func (a command) Action(c *cli.Context) error {
 			Description:  repo.Description,
 			FullName:     repo.FullName,
 			URL:          repo.HTMLURL,
+			CloneURL:     repo.CloneURL,
+			SSHURL:       repo.SSHURL,
 			Tracked:      true,
 			ShouldMirror: true,
 			Mirrored:     false,
