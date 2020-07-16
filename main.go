@@ -79,6 +79,8 @@ func main() {
 					flags.ghToken,
 					flags.glToken,
 					flags.config,
+					flags.out,
+				},
 				},
 			},
 		},

@@ -54,7 +54,7 @@ func (a create) Action(c *cli.Context) error {
 		return cli.Exit("Could not retrieve user from given GitHub token", 1)
 	}
 
-	var config config.MirrorConfig
+	var conf config.MirrorConfig
 	configFile, err := os.Open(c.String("config"))
 	if err != nil {
 		return cli.Exit("Failed to load config file", 0)
@@ -62,7 +62,7 @@ func (a create) Action(c *cli.Context) error {
 	defer configFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(configFile)
-	json.Unmarshal(byteValue, &config)
+	json.Unmarshal(byteValue, &conf)
 
 	gLab, err := gitlab.NewClient(GitLabToken)
 	if err != nil {
@@ -74,7 +74,7 @@ func (a create) Action(c *cli.Context) error {
 	var nameSpaceID int
 	found := false
 	for _, ns := range nameSpaces {
-		if ns.Path == config.GitLabGroup {
+		if ns.Path == conf.GitLabGroup {
 			nameSpaceID = ns.ID
 			found = true
 			break
@@ -82,7 +82,7 @@ func (a create) Action(c *cli.Context) error {
 	}
 
 	if !found {
-		return cli.Exit(fmt.Sprintf("Could not find a group you belong to that matches %s", config.GitLabGroup), 1)
+		return cli.Exit(fmt.Sprintf("Could not find a group you belong to that matches %s", conf.GitLabGroup), 1)
 	}
 
 	s := spin.New()
@@ -99,7 +99,7 @@ func (a create) Action(c *cli.Context) error {
 		}
 	}
 	go spinner()
-	for i, repo := range config.Repos {
+	for i, repo := range conf.Repos {
 		p := &gitlab.CreateProjectOptions{
 			Name:        repo.Name,
 			Description: repo.Description,
@@ -113,14 +113,26 @@ func (a create) Action(c *cli.Context) error {
 			log.Printf("Failed to create project for %s :\n%v", *repo.FullName, err)
 		} else {
 			log.Printf("Created repository for %s", *p.Name)
-			config.Repos[i].Mirrored = true
+			conf.Repos[i].Mirrored = true
+			conf.Repos[i].Replica = &config.ReplicaRepo{
+				Name:       p.Name,
+				CloneURL:   gitlab.String(fmt.Sprintf("https://gitlab.com/%s/%s.git", conf.GitLabGroup, *p.Name)),
+				SSHURL:     gitlab.String(fmt.Sprintf("git@gitlab.com:%s/%s.git", conf.GitLabGroup, *p.Name)),
+				ProjectURL: gitlab.String(fmt.Sprintf("https://gitlab.com/%s/%s", conf.GitLabGroup, *p.Name)),
+			}
 		}
 	}
 	quit <- true
 
 	configFile.Close()
-	configFileOut, _ := json.MarshalIndent(config, "", "    ")
-	_ = ioutil.WriteFile(c.String("out"), configFileOut, 0644)
+	configFileOut, err := json.MarshalIndent(conf, "", "    ")
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(c.String("out"), configFileOut, 0644)
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("\nSuccessfully created repositories in GitLab!")
 	return nil
