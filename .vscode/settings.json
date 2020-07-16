@@ -1,0 +1,9 @@
+{
+    "go.buildTags": "static,system_libgit2",
+    "go.toolsEnvVars": {
+        "GO111MODULE": "on",
+        "GOFLAGS": "-tags=static,system_libgit2",
+        "CGO_ENABLED": "1",
+    },
+    "go.useLanguageServer": true
+}

@@ -82,6 +82,16 @@ func main() {
 					flags.out,
 				},
 			},
+			{
+				Name:   "sync",
+				Usage:  "Sync mirrored repositories from remote to mirror",
+				Action: commands.Sync.Action,
+				Flags: []cli.Flag{
+					flags.ghToken,
+					flags.config,
+					flags.out,
+				},
+			},
 		},
 	}
 

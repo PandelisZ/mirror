@@ -17,13 +17,13 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type create struct {
+type mirror struct {
 }
 
 // Create is the exported struct to be used in main
-var Create = create{}
+var Create = mirror{}
 
-func (a create) Action(c *cli.Context) error {
+func (a mirror) Action(c *cli.Context) error {
 
 	GitLabToken := os.Getenv("GL_TOKEN")
 

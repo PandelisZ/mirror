@@ -10,7 +10,7 @@ type MirrorRepoConfig struct {
 	Mirrored     bool
 	Description  *string
 	URL          *string
-	Replica      *ReplicaRepo
+	Replica      *ReplicaRepo `json:"replica,omitempty"`
 }
 
 type ReplicaRepo struct {
@@ -18,10 +18,12 @@ type ReplicaRepo struct {
 	CloneURL   *string
 	ProjectURL *string
 	SSHURL     *string
+	LastSync   int64 `json:"lastSync,omitempty"`
 }
 
 type MirrorConfig struct {
 	GitHubOrg   string
 	GitLabGroup string
+	LastSync    int64 `json:"lastSync,omitempty"`
 	Repos       []*MirrorRepoConfig
 }
