@@ -81,7 +81,6 @@ func main() {
 					flags.config,
 					flags.out,
 				},
-				},
 			},
 		},
 	}

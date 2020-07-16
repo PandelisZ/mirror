@@ -100,6 +100,11 @@ func (a create) Action(c *cli.Context) error {
 	}
 	go spinner()
 	for i, repo := range conf.Repos {
+
+		if !repo.ShouldMirror || repo.Mirrored {
+			continue
+		}
+
 		p := &gitlab.CreateProjectOptions{
 			Name:        repo.Name,
 			Description: repo.Description,
